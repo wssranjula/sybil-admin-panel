@@ -2,17 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MessageSquare, Users, LayoutDashboard, Menu, X, Settings } from 'lucide-react';
+import { MessageSquare, Users, LayoutDashboard, Menu, X, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import Image from 'next/image';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 export function Navigation() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { logout, user } = useAuth();
 
   const links = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/chat', label: 'Chat with Sybil', icon: MessageSquare },
     { href: '/whitelist', label: 'Whitelist', icon: Users },
     { href: '/prompt', label: 'Prompt Config', icon: Settings },
@@ -117,9 +120,34 @@ export function Navigation() {
         </p>
       </div>
 
-      {/* Footer */}
-      <div className="absolute bottom-4 lg:bottom-6 left-4 lg:left-6 right-4 lg:right-6">
-        <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-950/20 dark:to-teal-950/20 rounded-xl p-3 lg:p-4 border border-green-200 dark:border-green-800">
+      {/* User Info & Logout */}
+      <div className="absolute bottom-4 lg:bottom-6 left-4 lg:left-6 right-4 lg:right-6 space-y-3">
+        {/* User Info */}
+        {user && (
+          <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-950/20 dark:to-teal-950/20 rounded-xl p-3 border border-green-200 dark:border-green-800">
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">
+              {user.username}
+            </p>
+            {user.email && (
+              <p className="text-xs text-gray-500 dark:text-gray-500 truncate">
+                {user.email}
+              </p>
+            )}
+          </div>
+        )}
+        
+        {/* Logout Button */}
+        <Button
+          onClick={logout}
+          variant="outline"
+          className="w-full h-10 border-2 border-red-200 dark:border-red-800 hover:border-red-500 dark:hover:border-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-700 dark:text-red-400 font-semibold transition-all"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
+        
+        {/* Footer */}
+        <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-950/20 dark:to-teal-950/20 rounded-xl p-3 border border-green-200 dark:border-green-800">
           <p className="text-xs text-gray-600 dark:text-gray-400">
             Powered by <span className="font-semibold text-green-700 dark:text-green-400">Sybil AI</span>
           </p>

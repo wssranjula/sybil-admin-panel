@@ -1,239 +1,175 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSquare, Users, Activity, TrendingUp, Wind, Droplet } from 'lucide-react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import Image from 'next/image';
+'use client';
 
-export default function DashboardPage() {
-  // Mock data - in real app, fetch from API
-  const stats = {
-    totalChats: 0,
-    activeUsers: 0,
-    whitelistedNumbers: 0,
-    responseTime: '< 2s',
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Leaf, Mail, Lock, Sparkles, User } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+
+export default function LoginPage() {
+  const router = useRouter();
+  const { login, isAuthenticated } = useAuth();
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
+
+  const handleCredentialLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Call backend login API
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/admin/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: usernameOrEmail, // Backend accepts username or email
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Use auth context to login
+        login(data.access_token, data.user);
+        
+        // Redirect to dashboard
+        router.push('/dashboard');
+      } else {
+        setError(data.detail || 'Login failed. Please check your credentials.');
+        setIsLoading(false);
+      }
+    } catch (err) {
+      setError('Network error. Please check if the backend server is running.');
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8 pt-16 lg:pt-8">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 md:gap-4">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-700 to-teal-700 bg-clip-text text-transparent mb-1 md:mb-2 truncate">
-            Climate Hub Admin Portal
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base lg:text-lg">
-            Empowering climate action through AI-powered knowledge management
-          </p>
-        </div>
-        <div className="relative w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 shrink-0 bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-xl border-2 border-green-200 dark:border-green-700 animate-pulse">
-          <Image
-            src="/logo.png"
-            alt="Climate Hub Logo"
-            fill
-            className="object-contain"
-            priority
-            unoptimized
-          />
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 p-4 relative overflow-hidden">
+      {/* Animated Background Decorations */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-green-300/20 dark:bg-green-600/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-300/20 dark:bg-teal-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-300/10 dark:bg-emerald-600/5 rounded-full blur-3xl"></div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-2 border-blue-200 hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Total Chats
-            </CardTitle>
-            <MessageSquare className="h-5 w-5 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-blue-700">{stats.totalChats}</div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              Start chatting to see stats
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-green-200 hover:shadow-lg transition-shadow bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Whitelisted Numbers
-            </CardTitle>
-            <Users className="h-5 w-5 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-700">{stats.whitelistedNumbers}</div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              Authorized WhatsApp users
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-orange-200 hover:shadow-lg transition-shadow bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Active Users
-            </CardTitle>
-            <Activity className="h-5 w-5 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-orange-700">{stats.activeUsers}</div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              Last 24 hours
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-teal-200 hover:shadow-lg transition-shadow bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-950/20 dark:to-cyan-950/20">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Avg Response Time
-            </CardTitle>
-            <TrendingUp className="h-5 w-5 text-teal-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-teal-700">{stats.responseTime}</div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              Lightning fast ⚡
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-2 border-green-200 hover:border-green-400 transition-colors bg-white dark:bg-gray-900">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-600 to-emerald-600 flex items-center justify-center shadow-md">
-                <MessageSquare className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <CardTitle>Chat with Sybil</CardTitle>
-                <CardDescription>
-                  Ask questions about meetings, decisions, and climate initiatives
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Link href="/chat">
-              <Button className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Start Chatting
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-blue-200 hover:border-blue-400 transition-colors bg-white dark:bg-gray-900">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center shadow-md">
-                <Users className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <CardTitle>Manage Whitelist</CardTitle>
-                <CardDescription>
-                  Control which WhatsApp numbers can access the bot
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Link href="/whitelist">
-              <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-md">
-                <Users className="h-4 w-4 mr-2" />
-                Manage Whitelist
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-purple-200 hover:border-purple-400 transition-colors bg-white dark:bg-gray-900">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-md">
-                <MessageSquare className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <CardTitle>Configure Prompt</CardTitle>
-                <CardDescription>
-                  Set tone, style, and behavior for Sybil supervisor agent
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Link href="/prompt">
-              <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Configure Prompt
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Climate Action Features */}
-      <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-950/20 dark:to-teal-950/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="relative w-5 h-5 shrink-0">
-              <Image
-                src="/icon.png"
-                alt="Climate Hub"
-                fill
-                className="object-contain"
-              />
-            </div>
-            Sybil: Your Climate Intelligence Assistant
-          </CardTitle>
-          <CardDescription>
-            AI-powered knowledge management for environmental action
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <div className="flex gap-3 p-4 bg-white dark:bg-gray-900 rounded-xl border-2 border-blue-100 dark:border-blue-900">
-              <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                <Wind className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Meeting Insights</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Query climate meetings, UNEA prep calls, and team decisions
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 p-4 bg-white dark:bg-gray-900 rounded-xl border-2 border-green-100 dark:border-green-900">
-              <div className="relative w-10 h-10 shrink-0">
+      <Card className="w-full max-w-md border-2 border-green-200/50 dark:border-green-800/50 shadow-2xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl relative z-10 hover:shadow-green-200/50 dark:hover:shadow-green-900/50 transition-all duration-300">
+        <CardHeader className="space-y-6 pb-8 pt-8">
+          {/* Logo Section with Enhanced Visibility */}
+          <div className="flex flex-col items-center gap-6">
+            {/* Large Logo with Glow Effect */}
+            <div className="relative group">
+              <div className="absolute -inset-4 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 rounded-3xl blur-2xl opacity-40 group-hover:opacity-60 animate-pulse transition-opacity"></div>
+              <div className="relative w-32 h-32 bg-white dark:bg-gray-800 rounded-3xl p-5 shadow-2xl border-4 border-green-100 dark:border-green-900 transform group-hover:scale-105 transition-transform duration-300">
                 <Image
-                  src="/icon.png"
-                  alt="Climate Hub"
+                  src="/logo.png"
+                  alt="Climate Hub Logo"
                   fill
-                  className="object-contain"
+                  className="object-contain p-2"
+                  priority
+                  unoptimized
                 />
               </div>
-              <div>
-                <h3 className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Policy Tracking</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Track environmental policies, proposals, and action items
-                </p>
-              </div>
+              {/* Sparkle Icon */}
+              <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-yellow-500 animate-pulse" />
             </div>
 
-            <div className="flex gap-3 p-4 bg-white dark:bg-gray-900 rounded-xl border-2 border-teal-100 dark:border-teal-900">
-              <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center shrink-0">
-                <Droplet className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+            {/* Title Section */}
+            <div className="text-center space-y-3">
+              <CardTitle className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-700 via-emerald-600 to-teal-700 bg-clip-text text-transparent drop-shadow-sm">
+                Sybil Admin Portal
+              </CardTitle>
+              <CardDescription className="text-base md:text-lg flex items-center justify-center gap-2 font-medium">
+                <Leaf className="h-5 w-5 text-green-600 dark:text-green-400" />
+                Climate Hub Intelligence System
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6 px-6 pb-8">
+          {/* Credential Login Form */}
+          <form onSubmit={handleCredentialLogin} className="space-y-5">
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+                {error}
               </div>
-              <div>
-                <h3 className="font-semibold mb-1 text-gray-900 dark:text-gray-100">WhatsApp Access</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Secure team communication with whitelist management
-                </p>
-              </div>
+            )}
+            <div className="space-y-2">
+              <label htmlFor="usernameOrEmail" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <User className="h-4 w-4 text-green-600 dark:text-green-400" />
+                Username or Email
+              </label>
+              <Input
+                id="usernameOrEmail"
+                type="text"
+                placeholder="username or admin@climatehub.org"
+                value={usernameOrEmail}
+                onChange={(e) => setUsernameOrEmail(e.target.value)}
+                required
+                className="h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-green-500 dark:focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-900 transition-all rounded-lg text-base"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <Lock className="h-4 w-4 text-green-600 dark:text-green-400" />
+                Password
+              </label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-green-500 dark:focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-900 transition-all rounded-lg text-base"
+                disabled={isLoading}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full h-12 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white font-bold text-base shadow-lg hover:shadow-xl hover:shadow-green-500/30 dark:hover:shadow-green-900/50 transition-all transform hover:scale-[1.02] active:scale-[0.98] rounded-lg"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing in...
+                </span>
+              ) : (
+                'Sign In'
+              )}
+            </Button>
+          </form>
+
+          {/* Footer Text */}
+          <div className="text-center pt-4 space-y-2">
+            <div className="flex items-center justify-center gap-2 text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 py-2 px-4 rounded-lg border border-green-200 dark:border-green-800">
+              <Leaf className="h-4 w-4" />
+              Secure access to climate intelligence
             </div>
           </div>
         </CardContent>

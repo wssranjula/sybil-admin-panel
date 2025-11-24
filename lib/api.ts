@@ -5,6 +5,26 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+// Helper function to get auth token
+function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('auth_token');
+}
+
+// Helper function to get auth headers
+function getAuthHeaders(): HeadersInit {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+}
+
 // ========================================
 // Types
 // ========================================
@@ -63,9 +83,7 @@ export interface WhitelistStats {
 export async function sendChatMessage(message: string, history?: ChatMessage[]): Promise<ChatResponse> {
   const response = await fetch(`${API_BASE_URL}/admin/chat`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ 
       message,
       history: history || []
@@ -81,7 +99,9 @@ export async function sendChatMessage(message: string, history?: ChatMessage[]):
 }
 
 export async function checkChatHealth() {
-  const response = await fetch(`${API_BASE_URL}/admin/chat/health`);
+  const response = await fetch(`${API_BASE_URL}/admin/chat/health`, {
+    headers: getAuthHeaders(),
+  });
   
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -98,7 +118,9 @@ export async function getWhitelist(includeInactive: boolean = false): Promise<Wh
   const url = new URL(`${API_BASE_URL}/admin/whitelist`);
   url.searchParams.set('include_inactive', includeInactive.toString());
 
-  const response = await fetch(url.toString());
+  const response = await fetch(url.toString(), {
+    headers: getAuthHeaders(),
+  });
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -111,9 +133,7 @@ export async function getWhitelist(includeInactive: boolean = false): Promise<Wh
 export async function addToWhitelist(entry: WhitelistCreateRequest): Promise<WhitelistEntry> {
   const response = await fetch(`${API_BASE_URL}/admin/whitelist`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(entry),
   });
 
@@ -131,9 +151,7 @@ export async function updateWhitelist(
 ): Promise<WhitelistEntry> {
   const response = await fetch(`${API_BASE_URL}/admin/whitelist/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(update),
   });
 
@@ -148,6 +166,7 @@ export async function updateWhitelist(
 export async function toggleWhitelistStatus(id: number): Promise<WhitelistEntry> {
   const response = await fetch(`${API_BASE_URL}/admin/whitelist/${id}/toggle`, {
     method: 'PATCH',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -164,6 +183,7 @@ export async function deleteFromWhitelist(id: number, hardDelete: boolean = fals
 
   const response = await fetch(url.toString(), {
     method: 'DELETE',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -174,7 +194,9 @@ export async function deleteFromWhitelist(id: number, hardDelete: boolean = fals
 
 export async function checkPhoneNumber(phoneNumber: string): Promise<boolean> {
   const encoded = encodeURIComponent(phoneNumber);
-  const response = await fetch(`${API_BASE_URL}/admin/whitelist/check/${encoded}`);
+  const response = await fetch(`${API_BASE_URL}/admin/whitelist/check/${encoded}`, {
+    headers: getAuthHeaders(),
+  });
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -185,7 +207,9 @@ export async function checkPhoneNumber(phoneNumber: string): Promise<boolean> {
 }
 
 export async function getWhitelistStats(): Promise<WhitelistStats> {
-  const response = await fetch(`${API_BASE_URL}/admin/whitelist/stats`);
+  const response = await fetch(`${API_BASE_URL}/admin/whitelist/stats`, {
+    headers: getAuthHeaders(),
+  });
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -211,7 +235,9 @@ export interface PromptConfig {
 }
 
 export async function getPromptConfig(): Promise<PromptConfig> {
-  const response = await fetch(`${API_BASE_URL}/admin/sybil/prompt-config`);
+  const response = await fetch(`${API_BASE_URL}/admin/sybil/prompt-config`, {
+    headers: getAuthHeaders(),
+  });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
@@ -224,9 +250,7 @@ export async function getPromptConfig(): Promise<PromptConfig> {
 export async function updatePromptConfig(config: PromptConfig): Promise<PromptConfig> {
   const response = await fetch(`${API_BASE_URL}/admin/sybil/prompt-config`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(config),
   });
 
