@@ -262,3 +262,90 @@ export async function updatePromptConfig(config: PromptConfig): Promise<PromptCo
   return response.json();
 }
 
+// ========================================
+// Google Drive File Monitoring API
+// ========================================
+
+export interface GDriveFileStatus {
+  id: number;
+  file_id: string;
+  file_name: string;
+  status: 'pending' | 'processing' | 'success' | 'failed';
+  file_size?: number;
+  error_message?: string;
+  processing_started_at?: string;
+  processing_completed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GDriveFileStats {
+  total: number;
+  pending: number;
+  processing: number;
+  success: number;
+  failed: number;
+}
+
+export async function getGDriveFiles(status?: string, limit?: number): Promise<GDriveFileStatus[]> {
+  const url = new URL(`${API_BASE_URL}/admin/gdrive/files`);
+  if (status) {
+    url.searchParams.set('status', status);
+  }
+  if (limit) {
+    url.searchParams.set('limit', limit.toString());
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.files || [];
+}
+
+export async function getGDriveFileStatus(fileId: string): Promise<GDriveFileStatus> {
+  const response = await fetch(`${API_BASE_URL}/admin/gdrive/files/${encodeURIComponent(fileId)}`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function getGDriveFileStats(): Promise<GDriveFileStats> {
+  const response = await fetch(`${API_BASE_URL}/admin/gdrive/files/stats`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function retryGDriveFile(fileId: string): Promise<{ status: string; message: string; file_status: GDriveFileStatus }> {
+  const response = await fetch(`${API_BASE_URL}/admin/gdrive/files/${encodeURIComponent(fileId)}/retry`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+

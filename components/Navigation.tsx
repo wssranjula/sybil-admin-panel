@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MessageSquare, Users, LayoutDashboard, Menu, X, Settings, LogOut } from 'lucide-react';
+import { MessageSquare, Users, LayoutDashboard, Menu, X, Settings, LogOut, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -18,6 +18,7 @@ export function Navigation() {
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/chat', label: 'Chat with Sybil', icon: MessageSquare },
     { href: '/whitelist', label: 'Whitelist', icon: Users },
+    { href: '/gdrive-monitor', label: 'GDrive Monitor', icon: FileText },
     { href: '/prompt', label: 'Prompt Config', icon: Settings },
   ];
 
