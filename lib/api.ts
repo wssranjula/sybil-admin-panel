@@ -349,3 +349,164 @@ export async function retryGDriveFile(fileId: string): Promise<{ status: string;
   return response.json();
 }
 
+// ========================================
+// Otter Transcripts API
+// ========================================
+
+export interface OtterTranscript {
+  conversation_id: string;
+  title: string;
+  processed_at: string;
+  doc_id?: string;
+  status: 'processed' | 'synced' | 'failed';
+  call_type?: 'team' | 'private';
+  error_message?: string;
+}
+
+export interface OtterTranscriptStats {
+  total_processed: number;
+  last_processed?: string;
+  team_calls_count?: number;
+  private_calls_count?: number;
+  failed_count?: number;
+}
+
+export interface OtterTranscriptsResponse {
+  transcripts: OtterTranscript[];
+  total: number;
+}
+
+export interface OtterTranscriptsParams {
+  limit?: number;
+  offset?: number;
+  sort_by?: 'date' | 'title';
+  order?: 'asc' | 'desc';
+  call_type_filter?: 'team' | 'private';
+  include_failed?: boolean;
+}
+
+export interface OtterConfig {
+  team_call_indicators: string[];
+  team_calls_folder_name: string;
+  private_folder_name: string;
+}
+
+export async function getOtterTranscripts(params?: OtterTranscriptsParams): Promise<OtterTranscriptsResponse> {
+  const url = new URL(`${API_BASE_URL}/admin/otter/transcripts`);
+  
+  if (params?.limit) {
+    url.searchParams.set('limit', params.limit.toString());
+  }
+  if (params?.offset) {
+    url.searchParams.set('offset', params.offset.toString());
+  }
+  if (params?.sort_by) {
+    url.searchParams.set('sort_by', params.sort_by);
+  }
+  if (params?.order) {
+    url.searchParams.set('order', params.order);
+  }
+  if (params?.call_type_filter) {
+    url.searchParams.set('call_type_filter', params.call_type_filter);
+  }
+  if (params?.include_failed !== undefined) {
+    url.searchParams.set('include_failed', params.include_failed.toString());
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      // Clear invalid token
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      throw new Error('Authentication expired. Please log in again.');
+    }
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function getOtterTranscriptStats(): Promise<OtterTranscriptStats> {
+  const response = await fetch(`${API_BASE_URL}/admin/otter/transcripts/stats`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      // Clear invalid token
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      throw new Error('Authentication expired. Please log in again.');
+    }
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function getOtterConfig(): Promise<OtterConfig> {
+  const response = await fetch(`${API_BASE_URL}/admin/otter/config`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      throw new Error('Authentication expired. Please log in again.');
+    }
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function updateOtterConfig(config: Partial<OtterConfig>): Promise<OtterConfig & { message?: string }> {
+  const response = await fetch(`${API_BASE_URL}/admin/otter/config`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(config),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      throw new Error('Authentication expired. Please log in again.');
+    }
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function retryOtterTranscript(conversationId: string): Promise<{ status: string; message: string; doc_id?: string; conversation_id: string }> {
+  const response = await fetch(`${API_BASE_URL}/admin/otter/transcripts/${conversationId}/retry`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      throw new Error('Authentication expired. Please log in again.');
+    }
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
