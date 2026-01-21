@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { getPipelineConfig, updatePipelineConfig, type PipelineConfigMap } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
-interface ConfigFormData {
+interface ConfigFormData extends Record<string, string> {
   poll_interval_seconds: string;
   batch_size: string;
   max_retries: string;
