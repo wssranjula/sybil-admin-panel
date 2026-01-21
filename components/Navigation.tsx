@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MessageSquare, Users, LayoutDashboard, Menu, X, Settings, LogOut, FileText, FileCheck } from 'lucide-react';
+import { MessageSquare, Users, LayoutDashboard, Menu, X, Settings, LogOut, FileText, FileCheck, Activity, History, AlertTriangle, Cog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -20,6 +20,10 @@ export function Navigation() {
     { href: '/whitelist', label: 'Whitelist', icon: Users },
     { href: '/gdrive-monitor', label: 'GDrive Monitor', icon: FileText },
     { href: '/otter-transcripts', label: 'Otter Transcripts', icon: FileCheck },
+    { href: '/otter-pipeline', label: 'Otter Pipeline', icon: Activity },
+    { href: '/otter-pipeline/runs', label: 'Pipeline Runs', icon: History },
+    { href: '/otter-pipeline/errors', label: 'Pipeline Errors', icon: AlertTriangle },
+    { href: '/otter-pipeline/settings', label: 'Pipeline Settings', icon: Cog },
     { href: '/prompt', label: 'Prompt Config', icon: Settings },
   ];
 
