@@ -561,12 +561,14 @@ export interface DashboardSummary {
     interval_seconds: number;
     circuit_breaker_open: boolean;
     consecutive_failures: number;
+    background_processing_enabled?: boolean;
   };
   processing: {
     total_transcripts: number;
     processed_transcripts: number;
     failed_transcripts: number;
     pending_transcripts: number;
+    google_drive_completed?: number;
     success_rate_7d: number;
     success_rate_30d: number;
     total_chunks: number;
@@ -968,6 +970,78 @@ export async function updatePipelineConfig(config: Record<string, string>): Prom
       localStorage.removeItem('user');
       throw new Error('Authentication expired. Please log in again.');
     }
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// ========================================
+// Neo4j Backlog Processing API
+// ========================================
+
+export interface Neo4jBacklogStatus {
+  pending_count: number;
+  total_conversations: number;
+  neo4j_completed: number;
+  google_drive_completed: number;
+  processing_enabled: boolean;
+  background_processing_enabled: boolean;
+}
+
+export interface Neo4jQueueStatus {
+  is_running: boolean;
+  queue_size: number;
+  max_concurrent_jobs: number;
+  retry_queue_size: number;
+}
+
+export interface Neo4jBacklogProcessResult {
+  status: string;
+  total_pending: number;
+  queued_count: number;
+  message: string;
+}
+
+export async function getNeo4jBacklogStatus(): Promise<Neo4jBacklogStatus> {
+  const response = await fetch(`${API_BASE_URL}/admin/otter/neo4j/backlog`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function processNeo4jBacklog(limit?: number): Promise<Neo4jBacklogProcessResult> {
+  const url = new URL(`${API_BASE_URL}/admin/otter/neo4j/process-backlog`);
+  if (limit) {
+    url.searchParams.set('limit', limit.toString());
+  }
+
+  const response = await fetch(url.toString(), {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function getNeo4jQueueStatus(): Promise<Neo4jQueueStatus> {
+  const response = await fetch(`${API_BASE_URL}/admin/otter/neo4j/queue-status`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
     throw new Error(error.detail || `HTTP ${response.status}`);
   }

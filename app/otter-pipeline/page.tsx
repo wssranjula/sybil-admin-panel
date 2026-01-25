@@ -27,14 +27,21 @@ import {
   stopPipeline, 
   triggerPipeline,
   retryAllFailedTranscripts,
+  getNeo4jBacklogStatus,
+  processNeo4jBacklog,
+  getNeo4jQueueStatus,
   type DashboardSummary,
-  type DailyStats
+  type DailyStats,
+  type Neo4jBacklogStatus,
+  type Neo4jQueueStatus
 } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export default function OtterPipelinePage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
+  const [neo4jBacklog, setNeo4jBacklog] = useState<Neo4jBacklogStatus | null>(null);
+  const [neo4jQueue, setNeo4jQueue] = useState<Neo4jQueueStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -43,12 +50,22 @@ export default function OtterPipelinePage() {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const [summaryData, statsData] = await Promise.all([
+      const [summaryData, statsData, backlogData, queueData] = await Promise.all([
         getPipelineSummary(),
-        getDailyStats(14)
+        getDailyStats(14),
+        getNeo4jBacklogStatus().catch(err => {
+          console.error('Failed to fetch Neo4j backlog:', err);
+          return null;
+        }),
+        getNeo4jQueueStatus().catch(err => {
+          console.error('Failed to fetch queue status:', err);
+          return null;
+        })
       ]);
       setSummary(summaryData);
       setDailyStats(statsData);
+      setNeo4jBacklog(backlogData);
+      setNeo4jQueue(queueData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch pipeline data');
     } finally {
@@ -63,7 +80,7 @@ export default function OtterPipelinePage() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  const handleAction = async (action: 'start' | 'stop' | 'trigger' | 'retry-all') => {
+  const handleAction = async (action: 'start' | 'stop' | 'trigger' | 'retry-all' | 'process-backlog') => {
     setActionLoading(action);
     setActionMessage(null);
     try {
@@ -80,6 +97,9 @@ export default function OtterPipelinePage() {
           break;
         case 'retry-all':
           result = await retryAllFailedTranscripts();
+          break;
+        case 'process-backlog':
+          result = await processNeo4jBacklog();
           break;
       }
       setActionMessage({ type: 'success', message: result.message });
@@ -271,6 +291,87 @@ export default function OtterPipelinePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Neo4j Backlog Processing */}
+      {neo4jBacklog && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Database className="h-5 w-5 text-blue-600" />
+              Neo4j Backlog Processing
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Status Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-gray-600">Pending Neo4j</p>
+                  <p className="text-2xl font-bold text-yellow-700">{neo4jBacklog.pending_count}</p>
+                  <p className="text-xs text-gray-500 mt-1">Conversations waiting</p>
+                </div>
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-gray-600">Neo4j Completed</p>
+                  <p className="text-2xl font-bold text-green-700">{neo4jBacklog.neo4j_completed}</p>
+                  <p className="text-xs text-gray-500 mt-1">Successfully processed</p>
+                </div>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-gray-600">Google Drive</p>
+                  <p className="text-2xl font-bold text-blue-700">{neo4jBacklog.google_drive_completed}</p>
+                  <p className="text-xs text-gray-500 mt-1">Docs created</p>
+                </div>
+                {neo4jQueue && (
+                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <p className="text-sm text-gray-600">Queue Size</p>
+                    <p className="text-2xl font-bold text-purple-700">{neo4jQueue.queue_size}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {neo4jQueue.max_concurrent_jobs} workers • {neo4jQueue.is_running ? 'Running' : 'Stopped'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Processing Controls */}
+              <div className="flex flex-wrap items-center gap-4">
+                <Button
+                  onClick={() => handleAction('process-backlog')}
+                  disabled={actionLoading !== null || neo4jBacklog.pending_count === 0 || !neo4jBacklog.background_processing_enabled}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {actionLoading === 'process-backlog' ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Database className="h-4 w-4 mr-2" />
+                  )}
+                  Process Neo4j Backlog ({neo4jBacklog.pending_count})
+                </Button>
+                
+                {!neo4jBacklog.background_processing_enabled && (
+                  <Badge variant="outline" className="border-red-200 text-red-700">
+                    Background Processing Disabled
+                  </Badge>
+                )}
+                
+                {neo4jBacklog.processing_enabled && neo4jBacklog.background_processing_enabled && (
+                  <Badge variant="outline" className="border-green-200 text-green-700">
+                    ✓ Background Processing Active
+                  </Badge>
+                )}
+              </div>
+
+              {/* Info Message */}
+              {neo4jBacklog.pending_count > 0 && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> Processing {neo4jBacklog.pending_count} conversations may take {Math.ceil(neo4jBacklog.pending_count / 10)} - {Math.ceil(neo4jBacklog.pending_count / 6)} minutes 
+                    ({neo4jQueue?.max_concurrent_jobs || 3} workers processing ~6-10 conversations/minute).
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
