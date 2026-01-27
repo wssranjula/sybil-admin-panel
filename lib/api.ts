@@ -1048,4 +1048,3 @@ export async function getNeo4jQueueStatus(): Promise<Neo4jQueueStatus> {
 
   return response.json();
 }
-
